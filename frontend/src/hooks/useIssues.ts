@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
-import { fetchIssues, liveSocketUrl, type Issue, type LiveEvent } from "../api/twin";
+import { fetchIssues, type Issue, type LiveEvent } from "../api/twin";
+import { openLiveSocket } from "../api/live";
 
 export type IssuesState = {
   issues: Issue[];
@@ -13,7 +14,7 @@ const MAX_FEED = 60;
 let state: IssuesState = { issues: [], connected: false, loading: true, error: null };
 const listeners = new Set<() => void>();
 let started = false;
-let socket: WebSocket | null = null;
+let socket: ReturnType<typeof openLiveSocket> | null = null;
 
 function emit(next: Partial<IssuesState>) {
   state = { ...state, ...next };
@@ -26,12 +27,12 @@ function upsert(issue: Issue) {
 }
 
 function connect() {
-  socket = new WebSocket(liveSocketUrl());
+  socket = openLiveSocket();
   socket.onopen = () => emit({ connected: true });
   socket.onmessage = (ev) => {
     let event: LiveEvent;
     try {
-      event = JSON.parse(ev.data as string) as LiveEvent;
+      event = JSON.parse(ev.data) as LiveEvent;
     } catch {
       return;
     }

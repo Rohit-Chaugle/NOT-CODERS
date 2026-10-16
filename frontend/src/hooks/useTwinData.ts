@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchCampus,
   fetchIssues,
-  liveSocketUrl,
   type CampusBuilding,
   type CampusSummary,
   type Issue,
   type LiveEvent,
   type LiveReading,
 } from "../api/twin";
+import { openLiveSocket } from "../api/live";
 import {
   THRESHOLDS,
   worldToIsland,
@@ -132,7 +132,7 @@ export function useTwinData(): TwinData {
 
   // ---- websocket ----
   useEffect(() => {
-    let socket: WebSocket | null = null;
+    let socket: ReturnType<typeof openLiveSocket> | null = null;
     let reconnectTimer: number | undefined;
     let closed = false;
 
@@ -194,11 +194,11 @@ export function useTwinData(): TwinData {
     };
 
     const connect = () => {
-      socket = new WebSocket(liveSocketUrl());
+      socket = openLiveSocket();
       socket.onopen = () => setConnected(true);
       socket.onmessage = (ev) => {
         try {
-          handle(JSON.parse(ev.data as string) as LiveEvent);
+          handle(JSON.parse(ev.data) as LiveEvent);
         } catch {
           /* ignore malformed frames */
         }

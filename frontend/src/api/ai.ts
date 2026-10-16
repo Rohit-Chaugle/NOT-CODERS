@@ -5,7 +5,13 @@
  * - GET  /ai/report/pdf
  * - POST /ai/chat
  * - GET  /ai/provider
+ *
+ * In standalone mode these are produced locally by the in-browser engine
+ * (deterministic template output, no API key required).
  */
+
+import { engine } from "../standalone/engine";
+import { forceStandalone, isStandalone, isUnreachable } from "../standalone/state";
 
 export type Recommendation = {
   id: string;
@@ -139,41 +145,86 @@ async function postJson<T>(url: string, body: unknown = {}): Promise<T> {
 export async function fetchRecommendations(
   params?: { open_issues?: unknown[]; recent_stats?: unknown },
 ): Promise<RecommendationsResponse> {
-  return postJson<RecommendationsResponse>("/ai/recommendations", params ?? {});
+  if (isStandalone()) return engine.fetchRecommendations();
+  try {
+    return await postJson<RecommendationsResponse>("/ai/recommendations", params ?? {});
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.fetchRecommendations();
+    }
+    throw error;
+  }
 }
 
 export async function fetchReport(
   params?: { period?: string; format?: "json" | "pdf" },
 ): Promise<SustainabilityReport> {
-  return postJson<SustainabilityReport>("/ai/report", params ?? {});
+  if (isStandalone()) return engine.fetchReport();
+  try {
+    return await postJson<SustainabilityReport>("/ai/report", params ?? {});
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.fetchReport();
+    }
+    throw error;
+  }
 }
 
 export async function sendChatMessage(
   messages: ChatMessage[] | string,
 ): Promise<ChatResponse> {
+  if (isStandalone()) return engine.sendChatMessage(messages);
   const payload = typeof messages === "string" ? { message: messages } : { messages };
-  return postJson<ChatResponse>("/ai/chat", payload);
+  try {
+    return await postJson<ChatResponse>("/ai/chat", payload);
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.sendChatMessage(messages);
+    }
+    throw error;
+  }
 }
 
 export async function fetchProviderInfo(): Promise<ProviderInfo> {
-  const res = await fetch("/ai/provider", { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`/ai/provider responded ${res.status}`);
-  return res.json() as Promise<ProviderInfo>;
+  if (isStandalone()) return engine.providerInfo();
+  try {
+    const res = await fetch("/ai/provider", { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error(`/ai/provider responded ${res.status}`);
+    return (await res.json()) as ProviderInfo;
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.providerInfo();
+    }
+    throw error;
+  }
 }
 
 /**
  * Triggers a download of the sustainability report PDF from the backend.
  */
 export async function downloadReportPdf(): Promise<void> {
-  const res = await fetch("/ai/report/pdf");
-  if (!res.ok) throw new Error("Failed to download sustainability report PDF");
-  const blob = await res.blob();
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "campus-sustainability-report.pdf";
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
+  if (isStandalone()) return engine.downloadReportPdf();
+  try {
+    const res = await fetch("/ai/report/pdf");
+    if (!res.ok) throw new Error("Failed to download sustainability report PDF");
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "campus-sustainability-report.pdf";
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.downloadReportPdf();
+    }
+    throw error;
+  }
 }

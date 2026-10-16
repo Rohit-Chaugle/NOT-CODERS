@@ -1,7 +1,13 @@
 /**
  * Typed client for the Verdant Twin backend. In dev the Vite proxy forwards
  * these root-level paths to http://127.0.0.1:8000 (see vite.config.ts).
+ *
+ * When the app runs in standalone mode (or the API is unreachable) these calls
+ * are served by the in-browser engine instead.
  */
+
+import { engine } from "../standalone/engine";
+import { forceStandalone, isStandalone, isUnreachable } from "../standalone/state";
 
 export type Position = { x: number; y: number; z: number };
 
@@ -90,26 +96,52 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   return (await res.json()) as T;
 }
 
-export function fetchCampus(signal?: AbortSignal): Promise<CampusResponse> {
-  return getJson<CampusResponse>("/twin/campus", signal);
+export async function fetchCampus(signal?: AbortSignal): Promise<CampusResponse> {
+  if (isStandalone()) return engine.fetchCampus();
+  try {
+    return await getJson<CampusResponse>("/twin/campus", signal);
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.fetchCampus();
+    }
+    throw error;
+  }
 }
 
-export function fetchIssues(
+export async function fetchIssues(
   params: { status?: IssueStatus; limit?: number } = {},
   signal?: AbortSignal,
 ): Promise<{ count: number; issues: Issue[] }> {
+  if (isStandalone()) return engine.fetchIssues(params);
   const q = new URLSearchParams();
   if (params.status) q.set("status", params.status);
   if (params.limit) q.set("limit", String(params.limit));
   const qs = q.toString();
-  return getJson(`/issues${qs ? `?${qs}` : ""}`, signal);
+  try {
+    return await getJson(`/issues${qs ? `?${qs}` : ""}`, signal);
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.fetchIssues(params);
+    }
+    throw error;
+  }
 }
 
-export function resolveIssue(id: number): Promise<Issue> {
-  return fetch(`/issues/${id}/resolve`, { method: "PATCH" }).then((r) => {
-    if (!r.ok) throw new Error(`resolve ${id} responded ${r.status}`);
-    return r.json() as Promise<Issue>;
-  });
+export async function resolveIssue(id: number): Promise<Issue> {
+  if (isStandalone()) return engine.resolveIssue(id);
+  try {
+    const res = await fetch(`/issues/${id}/resolve`, { method: "PATCH" });
+    if (!res.ok) throw new Error(`resolve ${id} responded ${res.status}`);
+    return (await res.json()) as Issue;
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.resolveIssue(id);
+    }
+    throw error;
+  }
 }
 
 export type BuildingRankItem = {
@@ -130,8 +162,17 @@ export type BuildingRankItem = {
   rank: number;
 };
 
-export function fetchLeaderboard(signal?: AbortSignal): Promise<{ count: number; leaderboard: BuildingRankItem[] }> {
-  return getJson<{ count: number; leaderboard: BuildingRankItem[] }>("/stats/leaderboard", signal);
+export async function fetchLeaderboard(signal?: AbortSignal): Promise<{ count: number; leaderboard: BuildingRankItem[] }> {
+  if (isStandalone()) return engine.fetchLeaderboard();
+  try {
+    return await getJson<{ count: number; leaderboard: BuildingRankItem[] }>("/stats/leaderboard", signal);
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.fetchLeaderboard();
+    }
+    throw error;
+  }
 }
 
 export async function triggerDemoAnomaly(step: number = 1): Promise<{
@@ -141,12 +182,21 @@ export async function triggerDemoAnomaly(step: number = 1): Promise<{
   zone: string;
   building: string;
 }> {
-  const res = await fetch(`/twin/demo/anomaly?step=${step}`, {
-    method: "POST",
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error(`Demo anomaly trigger failed with ${res.status}`);
-  return res.json();
+  if (isStandalone()) return engine.triggerDemoAnomaly(step);
+  try {
+    const res = await fetch(`/twin/demo/anomaly?step=${step}`, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) throw new Error(`Demo anomaly trigger failed with ${res.status}`);
+    return (await res.json()) as { step: number; title: string; issue: Issue; zone: string; building: string };
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.triggerDemoAnomaly(step);
+    }
+    throw error;
+  }
 }
 
 /** WebSocket URL for /ws/live, derived from the current origin. */

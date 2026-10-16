@@ -5,6 +5,8 @@
  * submitted image, so the UI can overlay them without knowing pixel sizes.
  */
 
+import { engine } from "../standalone/engine";
+import { forceStandalone, isStandalone, isUnreachable } from "../standalone/state";
 import type { Issue, IssueType, Severity } from "./twin";
 
 export type VisionKind = "waste" | "lights" | "water";
@@ -61,27 +63,37 @@ export async function analyzeImage(
   zoneId: number,
   signal?: AbortSignal,
 ): Promise<VisionResponse> {
+  if (isStandalone()) return engine.analyzeImage(file, zoneId);
+
   const body = new FormData();
   body.append("file", file);
   body.append("zone_id", String(zoneId));
 
-  const res = await fetch("/vision/analyze", {
-    method: "POST",
-    body,
-    signal,
-    headers: { Accept: "application/json" },
-  });
+  try {
+    const res = await fetch("/vision/analyze", {
+      method: "POST",
+      body,
+      signal,
+      headers: { Accept: "application/json" },
+    });
 
-  if (!res.ok) {
-    let detail = `vision/analyze responded ${res.status}`;
-    try {
-      const payload = (await res.json()) as { detail?: unknown };
-      if (payload?.detail) detail = String(payload.detail);
-    } catch {
-      /* non-JSON error body */
+    if (!res.ok) {
+      let detail = `vision/analyze responded ${res.status}`;
+      try {
+        const payload = (await res.json()) as { detail?: unknown };
+        if (payload?.detail) detail = String(payload.detail);
+      } catch {
+        /* non-JSON error body */
+      }
+      throw new Error(detail);
     }
-    throw new Error(detail);
-  }
 
-  return (await res.json()) as VisionResponse;
+    return (await res.json()) as VisionResponse;
+  } catch (error) {
+    if (isUnreachable(error)) {
+      forceStandalone();
+      return engine.analyzeImage(file, zoneId);
+    }
+    throw error;
+  }
 }
