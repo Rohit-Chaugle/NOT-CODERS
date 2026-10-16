@@ -1,0 +1,13 @@
+# Optional heavy dependencies for POST /vision/analyze (real YOLO inference).
+#
+#   pip install -r requirements-vision.txt
+#
+# The endpoint works WITHOUT these: app.services.vision falls back to a mock
+# detector so the demo never breaks. Base API deps stay in requirements.txt
+# (fastapi, uvicorn, sqlalchemy) — nothing here is imported at app startup.
+
+ultralytics>=8.3.0
+torch>=2.4.0
+torchvision>=0.19.0
+opencv-python-headless>=4.10.0
+pillow>=10.4.0

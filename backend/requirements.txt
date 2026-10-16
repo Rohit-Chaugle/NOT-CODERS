@@ -1,0 +1,8 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+SQLAlchemy>=2.0.30
+# Required for multipart uploads (POST /vision/analyze).
+python-multipart>=0.0.9
+# Required for sustainability report PDF export (POST /ai/report).
+reportlab>=5.0.0
+pillow>=9.0.0
