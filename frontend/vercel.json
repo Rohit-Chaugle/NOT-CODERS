@@ -1,0 +1,24 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://verdant-api-f79t.onrender.com/api/:path*" },
+    { "source": "/api", "destination": "https://verdant-api-f79t.onrender.com/api" },
+    { "source": "/twin/:path*", "destination": "https://verdant-api-f79t.onrender.com/twin/:path*" },
+    { "source": "/twin", "destination": "https://verdant-api-f79t.onrender.com/twin" },
+    { "source": "/zones/:path*", "destination": "https://verdant-api-f79t.onrender.com/zones/:path*" },
+    { "source": "/zones", "destination": "https://verdant-api-f79t.onrender.com/zones" },
+    { "source": "/sensors/:path*", "destination": "https://verdant-api-f79t.onrender.com/sensors/:path*" },
+    { "source": "/sensors", "destination": "https://verdant-api-f79t.onrender.com/sensors" },
+    { "source": "/issues/:path*", "destination": "https://verdant-api-f79t.onrender.com/issues/:path*" },
+    { "source": "/issues", "destination": "https://verdant-api-f79t.onrender.com/issues" },
+    { "source": "/stats/:path*", "destination": "https://verdant-api-f79t.onrender.com/stats/:path*" },
+    { "source": "/stats", "destination": "https://verdant-api-f79t.onrender.com/stats" },
+    { "source": "/vision/:path*", "destination": "https://verdant-api-f79t.onrender.com/vision/:path*" },
+    { "source": "/vision", "destination": "https://verdant-api-f79t.onrender.com/vision" },
+    { "source": "/ai/:path*", "destination": "https://verdant-api-f79t.onrender.com/ai/:path*" },
+    { "source": "/ai", "destination": "https://verdant-api-f79t.onrender.com/ai" },
+    { "source": "/notifications/:path*", "destination": "https://verdant-api-f79t.onrender.com/notifications/:path*" },
+    { "source": "/notifications", "destination": "https://verdant-api-f79t.onrender.com/notifications" },
+    { "source": "/health/:path*", "destination": "https://verdant-api-f79t.onrender.com/health/:path*" },
+    { "source": "/health", "destination": "https://verdant-api-f79t.onrender.com/health" }
+  ]
+}
